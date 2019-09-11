@@ -7,23 +7,23 @@ from pysmi.smtree import TNode, TEdge
 from pysmi.utils import domains_to_intervals, is_literal, half_chain_relabel
 
 
-def create_graph(graph_type, n, n_branches=3):
+def create_graph(graph_type, n_nodes, n_branches=3):
     """
     generate graph from networkx
     :param graph_type: STAR, FAT/SNOW, PATH, CHAIN
-    :param n: number of nodes
+    :param n_nodes: number of nodes
     :param n_branches: number of branches in snow case
     :return:
     """
     if graph_type == 'PATH':
-        graph = nx.generators.path_graph(n)
+        graph = nx.generators.path_graph(n_nodes)
     elif graph_type == 'FAT' or graph_type == 'SNOW':
-        graph = nx.full_rary_tree(n_branches, n)
+        graph = nx.full_rary_tree(n_branches, n_nodes)
     elif graph_type == 'STAR':
-        graph = nx.star_graph(n)
+        graph = nx.star_graph(n_nodes)
     elif graph_type == 'CHAIN':
-        graph = nx.generators.path_graph(n)
-        mapping = half_chain_relabel(n)
+        graph = nx.generators.path_graph(n_nodes)
+        mapping = half_chain_relabel(n_nodes)
         graph = nx.relabel_nodes(graph, mapping=mapping)
     else:
         graph = None
@@ -33,7 +33,7 @@ def create_graph(graph_type, n, n_branches=3):
 def graph_to_tree(graph: Graph,
                   constant: float = 1.0,
                   return_map=False,
-                  n_bbox=2):
+                  n_bbox=1):
     edges, nodes = list(graph.edges), list(graph.nodes)
     n = len(nodes)
     node_map = {}
@@ -137,7 +137,9 @@ def check_tree(root: TNode):
                         print("edge represents formula {}".format(edge.formula))
                         print("edge with child {}".format(edge.child.symbol))
                         if edge.critical_points:
-                            print("critcal points {}".format(edge.critical_points))
+                            print("critcal points {}".format(
+                                edge.critical_points
+                            ))
                         if edge.upper_bounds:
                             print("upper bounds {}".format(edge.upper_bounds))
                         if edge.lower_bounds:

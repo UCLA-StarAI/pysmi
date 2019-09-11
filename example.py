@@ -1,45 +1,51 @@
-import networkx as nx
+import os
 
 from pysmi.graph2formula import *
-from pysmi.utils import half_chain_relabel
 from pysmi.smi import SMI
-
-from pysmt.shortcuts import *
-from pysmt.typing import REAL
-
 import time
 from tqdm import tqdm
 import argparse
 
-if __name__ == '__main__':
-    graph_type = "STAR"
-    n_nodes = 6
-    jump = n_nodes - 1
-    cache = True
 
-    for i in tqdm(range(jump, n_nodes)):
-        if graph_type == 'PATH':
-            graph = nx.generators.path_graph(i)
-        elif graph_type == 'FAT':
-            n_branches = 3  # default
-            graph = nx.full_rary_tree(n_branches, i)
-        elif graph_type == 'STAR':
-            graph = nx.star_graph(i)
-        elif graph_type == 'CHAIN':
-            graph = nx.generators.path_graph(i)
-            mapping = half_chain_relabel(i)
-            graph = nx.relabel_nodes(graph, mapping=mapping)
-        else:
-            print("not valid graph type!")
-            break
-
+def run_example(graph_type,
+                n_nodes,
+                output_dir):
+    output_path = os.path.join(
+        output_dir,
+        f"{graph_type}_{n_nodes}.txt"
+    )
+    f = open(output_path, 'w')
+    runtimes = []
+    results = []
+    for i in tqdm(range(1, n_nodes + 1)):
+        graph = create_graph(graph_type, i)
         stree = graph_to_tree(graph)
-        formula = tree_to_formula(stree)
-        check_tree(stree)
 
-        e1 = time.time()
+        t1 = time.time()
         result = SMI.compute_mi(stree)
-        e2 = time.time()
+        t2 = time.time()
+        results.append(result)
+        runtimes.append((t2 - t1))
+        f.write("with number of node {}, model "
+                "integration result: {}\n".format(i, result))
+        f.write("smi runtime: {}\n".format(t2 - t1))
+        f.write("results so far: {}\n".format(results))
+        f.write("runtime so far: {}\n".format(runtimes))
+        f.flush()
+    f.close()
 
-        print("mi result: {}".format(result))
-        print("time: {}".format(e2 - e1))
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-n", "--n_nodes", type=int)
+    parser.add_argument("-o", "--output_dir", default='.')
+    parser.add_argument(
+        "-g", "--graph",
+        help="primal graph, STAR, FAT, or PATH, CHAIN, HALF_CHAIN, STREET"
+    )
+    args = parser.parse_args()
+    run_example(
+        args.graph,
+        args.n_nodes,
+        args.output_dir
+    )

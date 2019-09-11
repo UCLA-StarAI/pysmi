@@ -1,10 +1,10 @@
 from typing import List
-
+import random
 from fractions import Fraction
 import numpy as np
 from pysmt.fnode import FNode
 from pysmt.shortcuts import BOOL, Equals, REAL, Real, Solver, simplify, \
-    substitute, Plus, Times, Or, And, LE, LT, Symbol, Not
+    substitute, Plus, Times, Or, And, LE, LT
 from scipy import integrate
 from scipy.interpolate import lagrange
 
@@ -106,7 +106,8 @@ def solve_equation(lhs: FNode,
     :param rhs: FNode formula
     :param domains: domain of variable, type FNode formula
     :param solver_name:
-    :return: solution of variable, dict with key as variable and value as solution, both type FNode
+    :return: solution of variable, dict with key as variable and value as
+    solution, both type FNode
     """
     problem = lhs.Equals(rhs)
     formula = problem if not domains else domains.And(problem)
@@ -165,7 +166,8 @@ def domains_to_intervals(domains):
     turn formula domain formula into list of domain interval points
     this work for non-trivial coefficient formulas
     :param domains: FNode formula
-    :return: list of interval points, type float, e.g. [[1,2], [3,4]] which means domain (1<x<2 or 3<x<4)
+    :return: list of interval points, type float, e.g. [[1,2], [3,4]] which
+    means domain (1<x<2 or 3<x<4)
     """
     domains = simplify(domains)
     real_variables = list(get_real_variables(domains))
@@ -312,7 +314,6 @@ def get_coefficients(atom: FNode):
     note that when there is a * x + b * x, simplify() doesn't do multiplication
     but still here we return (a + b)
     :param atom:  FNode, formula
-    :param x:  FNode, symbol of variable
     :return: dict with keys as variable symbol and values as coefficient in atom
     """
     variables = list(get_real_variables(atom))
@@ -386,7 +387,8 @@ def get_degree(lower_bound: FNode,
                degree: int = 0):
     """
     given integration bounds and polynomial degree of integrand,
-    return polynomial degree of integration w.r.t. variable in integration bounds
+    return polynomial degree of integration w.r.t. variable in integration
+    bounds
     :param lower_bound
     :param upper_bound
     :param degree: polynomial degree of integrand
@@ -430,71 +432,23 @@ def get_distinct_vals(interval, degree):
                 return sorted(vals)
 
 
-# def get_distinct_vals_cache(interval, degree, cache_val):
-#     points = []
-#
-#     # TODO: serious precision error happen in this way
-#     for val in cache_val:
-#         if interval[1] > val > interval[0]:
-#             points.append(val)
-#     points = list(set(points))
-#     if len(points) >= degree + 1:
-#         return points[0:degree + 1]
-#
-#     append_points = get_distinct_vals(interval, degree)
-#     for p in append_points:
-#         if p not in points:
-#             points.append(p)
-#         if len(points) == degree + 1:
-#             break
-#     points.sort(reverse=False)
-#     return points
-
-
 def get_distinct_vals_cache(interval, degree, cache: dict, label: int):
-    # cache_val -> cache dictionary
-    label_value = list(cache.keys())
-    cache_val = []
-    for l, v in label_value:
-        if l == label:
-            cache_val.append(v)
-    cache_val.sort(reverse=False)
-    start, end = -1, -1
-    for i in range(len(cache_val)):
-        if cache_val[-1] < interval[0] or cache_val[i] > interval[1]:
-            break
-        if interval[0] < cache_val[i] < interval[1]:
-            if start == -1:
-                start = i
-            end = i
+    cache_val = [v for _label, v in cache if _label == label]
+    cache_val.sort()
     valid_val = []
-    if start != -1:
-        valid_val = cache_val[start: end + 1]
-
+    if cache_val and cache_val[-1] > interval[0]:
+        for val in cache_val:
+            if interval[0] < val < interval[1]:
+                valid_val.append(val)
+            elif val >= interval[1]:
+                break
     if len(valid_val) >= degree + 1:
-        index = np.random.permutation(len(valid_val))
-        index = index[: degree + 1]
-        points = [valid_val[i] for i in index]
-        return points
+        return sorted(random.sample(valid_val, degree + 1))
 
     append_points = get_distinct_vals(interval, degree)
-    # while len(points) < degree + 1:
-    #     diff = degree + 1 - len(points)
-    #     index = np.random.permutation(len(append_points))
-    #     index = index[: diff]
-    #     app_points = [append_points[i] for i in index]
-    #     points = points + app_points
-    #     points = list(set(points))
-    #     points.sort(reverse=False)
-
-    # help interpolate
     candidate_points = valid_val + append_points
     candidate_points = list(set(candidate_points))
-    index = np.random.permutation(len(candidate_points))
-    index = index[: degree + 1]
-    points = [candidate_points[i] for i in index]
-    points.sort(reverse=False)
-    return points
+    return sorted(random.sample(candidate_points, degree + 1))
 
 
 def interpolate_and_integrate(xs, ys, interval):
@@ -568,8 +522,9 @@ def categorize_bounds(formula: FNode, sender_symbol: FNode):
             assert atom.is_le() or atom.is_lt()
             bound, bound_type = atom_to_bound(atom, sender_symbol)
             bounds[bound_type].append(bound)
-    return list(set(bounds[UPPER])), list(set(bounds[LOWER])), \
-           list(set(bounds[NEITHER]))
+    return (list(set(bounds[UPPER])),
+            list(set(bounds[LOWER])),
+            list(set(bounds[NEITHER])))
 
 
 def find_edge_critical_points(sender_domains: FNode,

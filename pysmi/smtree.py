@@ -1,13 +1,9 @@
 from collections import defaultdict
-from typing import List, Tuple
-
 from pysmt.fnode import FNode
-from pysmt.shortcuts import And, Real, simplify, Plus, LE, Or
-
+from pysmt.shortcuts import And, Real, simplify, LE, Or
 from pysmi.utils import (check_clause, solve_equation,
                          domains_to_intervals, intervals_to_points,
                          get_critical_points, get_real_variables,
-                         get_coefficients, atom_to_bound, UPPER, LOWER, NEITHER,
                          categorize_bounds, get_bounding_box)
 
 
@@ -20,7 +16,6 @@ class TNode:
                  n_bbox: int = 2,
                  xrange: float = 1):
         """
-
         :param symbol:
         :param label:
         :param domains:
@@ -103,7 +98,6 @@ class TEdge:
     def check_formula(self):
         """
         check if formula is valid for edge representation
-        :param formula: formula must be a clause with one variable
         :return:
         """
         assert check_clause(self.formula)
