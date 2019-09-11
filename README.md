@@ -1,4 +1,4 @@
-#Search-based Model Integration (SMI)
+# Search-based Model Integration (SMI)
 
 Source code for UAI19 paper "Efficient Search-Based Weighted Model Integration". To reproduce the experimental results in the paper, you can run:
 
